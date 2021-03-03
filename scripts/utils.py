@@ -31,6 +31,8 @@ HEADING_VAL = 0.05
 
 Transition = namedtuple('Transition',
                         ('cur_state', 'action', 'next_state', 'reward'))
+# Transition = namedtuple('Transition',
+                        # ('cur_map', 'cur_pose', 'action', 'next_map', 'next_pose', 'reward'))
 
 
 

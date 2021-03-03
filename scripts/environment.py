@@ -14,6 +14,7 @@ class Environment:
         self.n_angle = n_angle
         self.step_size = step_size
         self.time_threshold = time_threshold
+        self.free_spaces = 0
         self.dx = [-1, 0, 1, 0]
         self.dy = [0, -1, 0, 1]
         img = cv2.imread(map_path, cv2.IMREAD_COLOR)
@@ -28,6 +29,7 @@ class Environment:
                     self.map[i][j] = OBSTACLE
                 elif t == FREE:
                     self.map[i][j] = FREE
+                    self.free_spaces = self.free_spaces + 1
                 else:
                     print("INVALID PIXEL VALUE")
         
@@ -39,6 +41,8 @@ class Environment:
         self.time = 0
         self.rewards = 0
         self.spaces = 0
+        self.count = 0
+        self.type = True
         while(True):
             x = random.randint(0, self.height-1)
             y = random.randint(0, self.width-1)
@@ -52,11 +56,21 @@ class Environment:
     def update(self):
         reward = 0
         if self.visited[self.position[0]][self.position[1]] > 0:
-            reward = reward + REVISITED * self.visited[self.position[0]][self.position[1]]
+            if self.type:
+                self.count = 1
+                self.type = False
+            else:
+                self.count = self.count + 1
+            reward = reward + REVISITED * self.count
 
         else:
             self.spaces = self.spaces + 1
-            reward = reward + int(ARRIVE * math.sqrt(self.spaces))
+            if self.type:
+                self.count = self.count + 1
+            else:
+                self.count = 1
+                self.type = True
+            reward = reward + ARRIVE * self.count
         self.visited[self.position[0]][self.position[1]] = self.visited[self.position[0]][self.position[1]] + 1
         
         for i in range(self.n_angle):
@@ -256,3 +270,6 @@ class Environment:
 
     def getReward(self):
         return self.rewards
+
+    def getSummary(self):
+        return self.rewards, self.spaces, self.time
