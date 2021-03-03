@@ -177,8 +177,9 @@ for i_episode in range(n_episodes):
         optimize_model()
         if done:
             #episode_durations.append(t + 1)
+            rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
-            print("iteration {0}, duration : {1}, rewards : {2}".format(i_episode,t+1,env.rewards))
+            print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,rewards,spaces))
             #plot_durations()
             break
         else:
