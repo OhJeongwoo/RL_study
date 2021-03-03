@@ -2,6 +2,7 @@ import random
 import numpy as np
 from PIL import Image
 import cv2
+from utils import *
 import utils
 
 
@@ -20,7 +21,7 @@ class Environment:
         for i in range(self.height):
             tmp = []
             for j in range(self.width):
-                t = getPixel(img[i,j])
+                t = getType(img[i,j])
                 if t == OBSTACLE:
                     self.map[i][j] = OBSTACLE
                 elif t == FREE:
@@ -28,9 +29,6 @@ class Environment:
                 else:
                     print("INVALID PIXEL VALUE")
         
-
-                
-
 
     def start(self):
         # start new game, initialization
@@ -44,15 +42,15 @@ class Environment:
             self.position = [x,y]
             break
         self.heading = random.randint(0,3) # 0 up 1 left 2 down 3 right
-        update()
+        self.update()
 
     def update(self):
         reward = 0
-        if self.visited[position[0]][position[1]]:
+        if self.visited[self.position[0]][self.position[1]]:
             reward = reward + REVISITED
         else:
             reward = reward + ARRIVE
-        self.visited[position[0]][position[1]] = True
+        self.visited[self.position[0]][self.position[1]] = True
         
         for i in range(self.angle_interval):
             dx = self.step_size * math.cos(2 * math.pi * i / self.angle_interval)
@@ -89,14 +87,14 @@ class Environment:
         if action == 0:
             self.position[0] = self.position[0] + self.dx[self.heading]
             self.position[1] = self.position[1] + self.dy[self.heading]
-            reward = reward + update()
+            reward = reward + self.update()
         elif action == 1:
             self.heading = (self.heading + 1) % 4
             reward = reward + ROTATION
         elif action == 2:
             self.heading = (self.heading + 3) % 4
             reward = reward + ROTATION
-        success, end = isEnd()
+        success, end = self.isEnd()
         if success == FAIL:
             reward = reward + COLLISION
         elif success == SUCCESS:

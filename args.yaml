@@ -1,0 +1,11 @@
+visible_threshold: 5.0
+angle_interval: 60
+step_size: 0.2
+map_name: map.png
+
+batch_size: 128
+gamma: 0.999
+eps_start: 0.9
+eps_end: 0.05
+eps_decay: 200
+target_update: 10
