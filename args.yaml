@@ -1,6 +1,6 @@
 # Environment Configuration
 visible_threshold: 5.0
-angle_interval: 60
+n_angle: 60
 step_size: 0.2
 time_threshold: 1000
 map_name: map.png
@@ -8,7 +8,8 @@ map_name: map.png
 # RL Configuration
 actions: 3
 episodes: 3000
-hidden_layer_size: 64
+hidden_layer1_size: 128
+hidden_layer2_size: 32
 
 batch_size: 128
 gamma: 0.999
