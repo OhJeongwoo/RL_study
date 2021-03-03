@@ -34,7 +34,7 @@ with open(yaml_path) as f:
 ### Set up hyper parameters ###
 map_path = project_path + "/" + yaml_file['map_name']
 visible_threshold = yaml_file['visible_threshold']
-angle_interval = yaml_file['angle_interval']
+n_angle = yaml_file['n_angle']
 step_size = yaml_file['step_size']
 time_threshold = yaml_file['time_threshold']
 
@@ -53,7 +53,7 @@ hidden_layer_size = yaml_file['hidden_layer_size']
 ###############################
 
 # initialize environment
-env = env.Environment(map_path, visible_threshold, angle_interval, step_size, time_threshold)
+env = env.Environment(map_path, visible_threshold, n_angle, step_size, time_threshold)
 map_height, map_width = env.getSize()
 
 # set up matplotlib

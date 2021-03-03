@@ -30,7 +30,7 @@ POSITION_VAL = 0.7
 HEADING_VAL = 0.05
 
 Transition = namedtuple('Transition',
-                        ('cur_map', 'cur_pose', 'action', 'next_map', 'next_pose', 'reward'))
+                        ('cur_state', 'action', 'next_state', 'reward'))
 
 
 

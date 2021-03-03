@@ -13,10 +13,10 @@ with open(yaml_path) as f:
 
 map_path = project_path + "/" + yaml_file['map_name']
 visible_threshold = yaml_file['visible_threshold']
-angle_interval = yaml_file['angle_interval']
+n_angle = yaml_file['n_angle']
 step_size = yaml_file['step_size']
 
-game = env.Environment(map_path, visible_threshold, angle_interval, step_size)
+game = env.Environment(map_path, visible_threshold, n_angle, step_size)
 
 game.start()
 

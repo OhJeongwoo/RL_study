@@ -9,15 +9,16 @@ import utils
 
 
 class Environment:
-    def __init__(self, map_path, visible_threshold = 5.0, angle_interval = 60, step_size = 0.2, time_threshold = 1000):
+    def __init__(self, map_path, visible_threshold = 5.0, n_angle = 60, step_size = 0.2, time_threshold = 1000):
         self.visible_threshold = visible_threshold
-        self.angle_interval = angle_interval
+        self.n_angle = n_angle
         self.step_size = step_size
         self.time_threshold = time_threshold
         self.dx = [-1, 0, 1, 0]
         self.dy = [0, -1, 0, 1]
         img = cv2.imread(map_path, cv2.IMREAD_COLOR)
         self.height, self.width, _ = img.shape
+        self.max_distance = math.hypot(self.height, self.width)
         self.map = [[0 for i in range(self.width)] for j in range(self.height)]
         for i in range(self.height):
             tmp = []
@@ -58,9 +59,9 @@ class Environment:
             reward = reward + int(ARRIVE * math.sqrt(self.spaces))
         self.visited[self.position[0]][self.position[1]] = self.visited[self.position[0]][self.position[1]] + 1
         
-        for i in range(self.angle_interval):
-            dx = self.step_size * math.cos(2 * math.pi * i / self.angle_interval)
-            dy = self.step_size * math.sin(2 * math.pi * i / self.angle_interval)
+        for i in range(self.n_angle):
+            dx = self.step_size * math.cos(2 * math.pi * i / self.n_angle)
+            dy = self.step_size * math.sin(2 * math.pi * i / self.n_angle)
             step = 0
             while(True):
                 if step * self.step_size > self.visible_threshold:
@@ -142,11 +143,113 @@ class Environment:
                     rt[i][j] = FREE_VAL
 
         rt[self.position[0]][self.position[1]] = POSITION_VAL + HEADING_VAL * self.heading
-        # print(self.position)
-        # print(self.heading)
-        # print(self.height, self.width)
-        # print(self.map[self.position[0]][self.position[1]])
         return np.array(rt, dtype=np.float32)
+
+    def getLidar(self):
+        free_lidar = []
+        obstacle_lidar = []
+        visited_lidar = []
+        unknown_lidar = []
+
+        
+        # For free space
+        for i in range(self.n_angle):
+            dx = self.step_size * math.cos(2 * math.pi * i / self.n_angle + self.heading * math.pi / 2 + math.pi)
+            dy = self.step_size * math.sin(2 * math.pi * i / self.n_angle + self.heading * math.pi / 2 + math.pi)
+            step = 0
+            valid = True
+            while(True):
+                step = step + 1
+                nx = int(self.position[0] + step * dx)
+                ny = int(self.position[1] + step * dy)
+                if nx == self.position[0] and ny == self.position[1]:
+                    continue
+                if nx < 0 or nx >= self.height or ny < 0 or ny >= self.width:
+                    valid = False
+                    break
+                if self.visible[nx][ny] and self.visited[nx][ny] ==0 and self.map[nx][ny] == FREE:
+                    break
+
+            if valid:
+                free_lidar.append(step * self.step_size / self.max_distance)
+            else:
+                free_lidar.append(-1)
+        
+        # For obstacle space
+        for i in range(self.n_angle):
+            dx = self.step_size * math.cos(2 * math.pi * i / self.n_angle + self.heading * math.pi / 2 + math.pi)
+            dy = self.step_size * math.sin(2 * math.pi * i / self.n_angle + self.heading * math.pi / 2 + math.pi)
+            step = 0
+            valid = True
+            while(True):
+                step = step + 1
+                nx = int(self.position[0] + step * dx)
+                ny = int(self.position[1] + step * dy)
+                if nx == self.position[0] and ny == self.position[1]:
+                    continue
+                if nx < 0 or nx >= self.height or ny < 0 or ny >= self.width:
+                    valid = False
+                    break
+                if self.visible[nx][ny] and self.visited[nx][ny] ==0 and  self.map[nx][ny] == OBSTACLE:
+                    break
+                
+            if valid:
+                obstacle_lidar.append(step * self.step_size / self.max_distance)
+            else:
+                obstacle_lidar.append(-1)
+        
+        # For visited space
+        for i in range(self.n_angle):
+            dx = self.step_size * math.cos(2 * math.pi * i / self.n_angle + self.heading * math.pi / 2 + math.pi)
+            dy = self.step_size * math.sin(2 * math.pi * i / self.n_angle + self.heading * math.pi / 2 + math.pi)
+            step = 0
+            valid = True
+            while(True):
+                step = step + 1
+                nx = int(self.position[0] + step * dx)
+                ny = int(self.position[1] + step * dy)
+                if nx == self.position[0] and ny == self.position[1]:
+                    continue
+                if nx < 0 or nx >= self.height or ny < 0 or ny >= self.width:
+                    valid = False
+                    break
+                if self.visible[nx][ny] and self.visited[nx][ny] > 0:
+                    break
+                
+            if valid:
+                visited_lidar.append(step * self.step_size / self.max_distance)
+            else:
+                visited_lidar.append(-1)
+        
+        # For unknown space
+        for i in range(self.n_angle):
+            dx = self.step_size * math.cos(2 * math.pi * i / self.n_angle + self.heading * math.pi / 2 + math.pi)
+            dy = self.step_size * math.sin(2 * math.pi * i / self.n_angle + self.heading * math.pi / 2 + math.pi)
+            step = 0
+            valid = True
+            while(True):
+                step = step + 1
+                nx = int(self.position[0] + step * dx)
+                ny = int(self.position[1] + step * dy)
+                if nx == self.position[0] and ny == self.position[1]:
+                    continue
+                if nx < 0 or nx >= self.height or ny < 0 or ny >= self.width:
+                    valid = False
+                    break
+                if not self.visible[nx][ny]:
+                    break
+                
+            if valid:
+                unknown_lidar.append(step * self.step_size / self.max_distance)
+            else:
+                unknown_lidar.append(-1)
+        
+        free_lidar = np.array(free_lidar, dtype=np.float32)
+        obstacle_lidar = np.array(obstacle_lidar, dtype=np.float32)
+        visited_lidar = np.array(visited_lidar, dtype=np.float32)
+        unknown_lidar = np.array(unknown_lidar, dtype=np.float32)
+
+        return np.concatenate((free_lidar, obstacle_lidar, visited_lidar, unknown_lidar), axis=None)
 
     def getPose(self):
         return np.array([self.position[0]/self.height, self.position[1]/self.width, self.heading/4.0], dtype=np.float32)
