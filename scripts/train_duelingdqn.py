@@ -16,12 +16,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-from duelingdqn import *
+import dqn
 import environment as env
 import utils
 
 Transition = namedtuple('Transition',
-                        ('cur_map', 'cur_pose', 'action', 'next_map', 'next_pose', 'reward'))
+                        ('cur_state', 'action', 'next_state', 'reward'))
 
 ### Open yaml file ###
 project_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
@@ -34,7 +34,7 @@ with open(yaml_path) as f:
 ### Set up hyper parameters ###
 map_path = project_path + "/" + yaml_file['map_name']
 visible_threshold = yaml_file['visible_threshold']
-angle_interval = yaml_file['angle_interval']
+n_angle = yaml_file['n_angle']
 step_size = yaml_file['step_size']
 time_threshold = yaml_file['time_threshold']
 
@@ -48,12 +48,15 @@ TARGET_UPDATE = yaml_file['target_update']
 n_actions = yaml_file['actions']
 n_episodes = yaml_file['episodes']
 
-hidden_layer_size = yaml_file['hidden_layer_size']
+hidden_layer1_size = yaml_file['hidden_layer1_size']
+hidden_layer2_size = yaml_file['hidden_layer2_size']
+
+filename = yaml_file['filename']
 
 ###############################
 
 # initialize environment
-env = env.Environment(map_path, visible_threshold, angle_interval, step_size, time_threshold)
+env = env.Environment(map_path, visible_threshold, n_angle, step_size, time_threshold)
 map_height, map_width = env.getSize()
 
 # set up matplotlib
@@ -70,8 +73,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 transform = T.Compose([T.ToPILImage(),
                        T.ToTensor()])
 
-policy_net = DuelingDQN(map_height, map_width, n_actions, hidden_layer_size).to(device)
-target_net = DuelingDQN(map_height, map_width, n_actions, hidden_layer_size).to(device)
+policy_net = dqn.DQN(n_angle, n_actions, hidden_layer1_size, hidden_layer2_size).to(device)
+target_net = dqn.DQN(n_angle, n_actions, hidden_layer1_size, hidden_layer2_size).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
@@ -81,16 +84,16 @@ memory = utils.ReplayMemory(10000)
 
 steps_done = 0
 
-def select_action(map, pose):
+def select_action(state):
     global steps_done
     sample = random.random()
     eps_threshold = EPS_END + (EPS_START - EPS_END) * \
         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
     if sample > eps_threshold:
+        print('bbb')
         with torch.no_grad():
-            return torch.argmax(policy_net(map,pose))
-            # return policy_net(map, pose).max(1)[1].view(1, 1)
+            return policy_net(state).max(1)[1].view(1, 1)
     else:
         return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
 
@@ -124,20 +127,19 @@ def optimize_model():
         return
     transitions = memory.sample(BATCH_SIZE)
     batch = Transition(*zip(*transitions))
-    non_final_mask_map = torch.tensor(tuple(map(lambda s: s is not None,
-                                          batch.next_map)), device=device, dtype=torch.bool)
-    non_final_next_map = torch.cat([s for s in batch.next_map if s is not None])
-    non_final_next_pose = torch.cat([s for s in batch.next_pose if s is not None])
-    cur_map_batch = torch.cat(batch.cur_map)
-    cur_pose_batch = torch.cat(batch.cur_pose)
+    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
+                                          batch.next_state)), device=device, dtype=torch.bool)
+    non_final_next_state = torch.cat([s for s in batch.next_state if s is not None])
+    
+    cur_state_batch = torch.cat(batch.cur_state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
 
 
-    state_action_values = policy_net(cur_map_batch, cur_pose_batch).gather(1, action_batch)
+    state_action_values = policy_net(cur_state_batch).gather(1, action_batch)
 
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    next_state_values[non_final_mask_map] = target_net(non_final_next_map, non_final_next_pose).max(1)[0].detach()
+    next_state_values[non_final_mask] = target_net(non_final_next_state).max(1)[0].detach()
 
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
@@ -151,27 +153,27 @@ def optimize_model():
 
 
 
-
 for i_episode in range(n_episodes):
     # Initialize the environment and state
+    f = open(filename, 'a')
     env.start()
-    cur_map = transform(torch.from_numpy(env.getImage())).unsqueeze(0).to(device)
-    cur_pose = torch.from_numpy(env.getPose()).unsqueeze(0).to(device)
+    #cur_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
+    cur_state = torch.from_numpy(env.getLidar()).to(device)
     for t in count():
         # Select and perform an action
-        action = select_action(cur_map, cur_pose)
+        action = select_action(cur_state)
         reward, done = env.doAction(action)
         reward = torch.tensor([reward], device=device)
-
+        
+        
         # Observe new state
-        next_map = transform(torch.from_numpy(env.getImage())).unsqueeze(0).to(device)
-        next_pose = torch.from_numpy(env.getPose()).unsqueeze(0).to(device)
+        #next_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
+        next_state = torch.from_numpy(env.getLidar()).to(device)
         if done:
-            next_map = None
-            next_pose = None
+            next_state = None
 
         # Store the transition in memory
-        memory.push(cur_map, cur_pose, action, next_map, next_pose, reward)
+        memory.push(cur_state, action, next_state, reward)
 
 
         # Perform one step of the optimization (on the target network)
@@ -179,17 +181,23 @@ for i_episode in range(n_episodes):
         if done:
             #episode_durations.append(t + 1)
             episode_durations.append(env.rewards)
-            plot_durations()
+            f.write("iteration {0}, duration : {1}, rewards : {2}\n".format(i_episode,t+1,env.rewards))
+            # print("iteration {0}, duration : {1}, rewards : {2}".format(i_episode,t+1,env.rewards))
+            #plot_durations()
             break
-        cur_map = next_map
-        cur_pose = next_pose
-        # img = np.array(env.getImage(), dtype = np.uint8)
-        # cv2.imshow('GAME',img) 
-        # cv2.waitKey(1)
+        else:
+            img = np.array(env.getImage() * 255, dtype = np.uint8)
+            cv2.imshow('GAME',img) 
+            cv2.waitKey(1)
+        
+        cur_state = next_state
+        
         
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
+    
+    f.close()
 
 print('Complete')
 env.render()
