@@ -161,7 +161,8 @@ for i_episode in range(n_episodes):
         action = select_action(cur_map, cur_pose)
         reward, done = env.doAction(action)
         reward = torch.tensor([reward], device=device)
-
+        
+        
         # Observe new state
         next_map = transform(torch.from_numpy(env.getImage())).unsqueeze(0).to(device)
         next_pose = torch.from_numpy(env.getPose()).unsqueeze(0).to(device)
@@ -178,13 +179,17 @@ for i_episode in range(n_episodes):
         if done:
             #episode_durations.append(t + 1)
             episode_durations.append(env.rewards)
-            plot_durations()
+            print("iteration {0}, duration : {1}, rewards : {2}".format(i_episode,t+1,env.rewards))
+            #plot_durations()
             break
+        else:
+            img = np.array(env.getImage() * 255, dtype = np.uint8)
+            cv2.imshow('GAME',img) 
+            cv2.waitKey(1)
+        
         cur_map = next_map
         cur_pose = next_pose
-        # img = np.array(env.getImage(), dtype = np.uint8)
-        # cv2.imshow('GAME',img) 
-        # cv2.waitKey(1)
+        
         
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:

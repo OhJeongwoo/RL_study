@@ -34,9 +34,10 @@ class Environment:
     def start(self):
         # start new game, initialization
         self.visible = [[False for i in range(self.width)] for j in range(self.height)]
-        self.visited = [[False for i in range(self.width)] for j in range(self.height)]
+        self.visited = [[0 for i in range(self.width)] for j in range(self.height)]
         self.time = 0
         self.rewards = 0
+        self.spaces = 0
         while(True):
             x = random.randint(0, self.height-1)
             y = random.randint(0, self.width-1)
@@ -49,11 +50,13 @@ class Environment:
 
     def update(self):
         reward = 0
-        if self.visited[self.position[0]][self.position[1]]:
-            reward = reward + REVISITED
+        if self.visited[self.position[0]][self.position[1]] > 0:
+            reward = reward + REVISITED * self.visited[self.position[0]][self.position[1]]
+
         else:
-            reward = reward + ARRIVE
-        self.visited[self.position[0]][self.position[1]] = True
+            self.spaces = self.spaces + 1
+            reward = reward + int(ARRIVE * math.sqrt(self.spaces))
+        self.visited[self.position[0]][self.position[1]] = self.visited[self.position[0]][self.position[1]] + 1
         
         for i in range(self.angle_interval):
             dx = self.step_size * math.cos(2 * math.pi * i / self.angle_interval)
@@ -82,7 +85,7 @@ class Environment:
             if not done:
                 break
             for j in range(self.width):
-                if self.map[i][j] != OBSTACLE and not self.visited[i][j]:
+                if self.map[i][j] != OBSTACLE and self.visited[i][j] == 0:
                     done =  False
                     break
         if done:
@@ -105,10 +108,10 @@ class Environment:
             reward = reward + self.update()
         elif action == 1:
             self.heading = (self.heading + 1) % 4
-            reward = reward + ROTATION
+            reward = reward + ROTATION + self.update()
         elif action == 2:
             self.heading = (self.heading + 3) % 4
-            reward = reward + ROTATION
+            reward = reward + ROTATION + self.update()
         success, done = self.isEnd()
         
         if success == FAIL:
@@ -123,14 +126,14 @@ class Environment:
         return self.height, self.width
 
     def getImage(self):
-        rt = [[False for i in range(self.width)] for j in range(self.height)]
+        rt = [[0.0 for i in range(self.width)] for j in range(self.height)]
 
         for i in range(self.height):
             for j in range(self.width):
                 if not self.visible[i][j]:
                     rt[i][j] = UNKNOWN_VAL
                     continue
-                if self.visited[i][j]:
+                if self.visited[i][j] > 0:
                     rt[i][j] = VISITED_VAL
                     continue
                 if self.map[i][j] == OBSTACLE:
@@ -139,7 +142,10 @@ class Environment:
                     rt[i][j] = FREE_VAL
 
         rt[self.position[0]][self.position[1]] = POSITION_VAL + HEADING_VAL * self.heading
-
+        # print(self.position)
+        # print(self.heading)
+        # print(self.height, self.width)
+        # print(self.map[self.position[0]][self.position[1]])
         return np.array(rt, dtype=np.float32)
 
     def getPose(self):

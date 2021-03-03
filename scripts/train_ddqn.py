@@ -8,6 +8,7 @@ from itertools import count
 from PIL import Image
 import yaml
 import os
+import cv2
 
 import torch
 import torch.nn as nn
@@ -160,7 +161,8 @@ for i_episode in range(n_episodes):
         action = select_action(cur_map, cur_pose)
         reward, done = env.doAction(action)
         reward = torch.tensor([reward], device=device)
-
+        
+        
         # Observe new state
         next_map = transform(torch.from_numpy(env.getImage())).unsqueeze(0).to(device)
         next_pose = torch.from_numpy(env.getPose()).unsqueeze(0).to(device)
@@ -175,11 +177,21 @@ for i_episode in range(n_episodes):
         # Perform one step of the optimization (on the target network)
         optimize_model()
         if done:
-            episode_durations.append(t + 1)
-            plot_durations()
+            #episode_durations.append(t + 1)
+            episode_durations.append(env.rewards)
+            print(env.rewards)
+            #plot_durations()
             break
+        else:
+            img = np.array(env.getImage() * 255, dtype = np.uint8)
+            cv2.imshow('GAME',img) 
+            cv2.waitKey(1)
+        
+
         cur_map = next_map
         cur_pose = next_pose
+        
+        
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
