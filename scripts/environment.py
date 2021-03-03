@@ -9,10 +9,11 @@ import utils
 
 
 class Environment:
-    def __init__(self, map_path, visible_threshold = 5.0, angle_interval = 60, step_size = 0.2):
+    def __init__(self, map_path, visible_threshold = 5.0, angle_interval = 60, step_size = 0.2, time_threshold = 1000):
         self.visible_threshold = visible_threshold
         self.angle_interval = angle_interval
         self.step_size = step_size
+        self.time_threshold = time_threshold
         self.dx = [-1, 0, 1, 0]
         self.dy = [0, -1, 0, 1]
         img = cv2.imread(map_path, cv2.IMREAD_COLOR)
@@ -34,6 +35,7 @@ class Environment:
         # start new game, initialization
         self.visible = [[False for i in range(self.width)] for j in range(self.height)]
         self.visited = [[False for i in range(self.width)] for j in range(self.height)]
+        self.time = 0
         while(True):
             x = random.randint(0, self.height-1)
             y = random.randint(0, self.width-1)
@@ -74,15 +76,26 @@ class Environment:
         if self.map[self.position[0]][self.position[1]] == OBSTACLE:
             return FAIL, True
         
+        done = True
         for i in range(self.height):
+            if not done:
+                break
             for j in range(self.width):
                 if self.map[i][j] != OBSTACLE and not self.visited[i][j]:
-                    return INPROGRESS, False
-        return SUCCESS, True
+                    done =  False
+                    break
+        if done:
+            return SUCCESS, True
+        
+        if self.time > self.time_threshold:
+            return FAIL, True
+
+        return INPROGRESS, False
 
     def doAction(self, action):
         # do action
         # 0 : go, 1 : turn ccw, 2 : turn cw
+        self.time = self.time + 1
         reward = 0
         if action == 0:
             self.position[0] = self.position[0] + self.dx[self.heading]
@@ -99,7 +112,7 @@ class Environment:
             reward = reward + COLLISION
         elif success == SUCCESS:
             reward = reward + FINISH
-        return success, end
+        return reward, success, end
 
 
     def getSize(self):
@@ -118,4 +131,4 @@ class Environment:
                     continue
                 rt[i][j] = self.map[i][j]
 
-        return rt
+        return np.array(rt) / 255.0

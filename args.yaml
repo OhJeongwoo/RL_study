@@ -1,7 +1,9 @@
 visible_threshold: 5.0
 angle_interval: 60
 step_size: 0.2
+time_threshold: 1000
 map_name: map.png
+
 
 batch_size: 128
 gamma: 0.999
