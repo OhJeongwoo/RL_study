@@ -33,6 +33,7 @@ with open(yaml_path) as f:
 
 ### Set up hyper parameters ###
 map_path = project_path + "/" + yaml_file['map_name']
+log_path = project_path + "/" + yaml_file['log_file_name']
 visible_threshold = yaml_file['visible_threshold']
 n_angle = yaml_file['n_angle']
 step_size = yaml_file['step_size']
@@ -67,6 +68,8 @@ plt.ion()
 
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+logs = open(log_path, 'w')
 
 
 transform = T.Compose([T.ToPILImage(),
@@ -179,6 +182,8 @@ for i_episode in range(n_episodes):
             #episode_durations.append(t + 1)
             rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
+            data = "{0} {1} {2} {3}\n".format(i_episode,durations,rewards,spaces)
+            logs.write(data)
             print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,rewards,spaces))
             #plot_durations()
             break
@@ -195,6 +200,7 @@ for i_episode in range(n_episodes):
         target_net.load_state_dict(policy_net.state_dict())
 
 print('Complete')
+logs.close()
 env.render()
 env.close()
 plt.ioff()

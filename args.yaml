@@ -4,6 +4,7 @@ n_angle: 60
 step_size: 0.2
 time_threshold: 1000
 map_name: map.png
+log_file_name: result.log
 
 # RL Configuration
 actions: 3
