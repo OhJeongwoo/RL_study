@@ -36,7 +36,9 @@ class DQN(nn.Module):
     #     x = F.relu(self.bn3(self.conv3(x)))
     #     x = F.relu(self.bn4(self.conv4(x)))
     #     x = F.relu(self.hidden(torch.cat((x.view(x.size(0),-1),pose), dim=-1)))
-    #     return self.out(x)
+    #     x = self.out(x)
+    #     print(x.shape)
+    #     return x
 
     def __init__(self, n_angle, n_actions, n_hidden1, n_hidden2):
         super(DQN, self).__init__()
@@ -51,5 +53,5 @@ class DQN(nn.Module):
     def forward(self, state):
         x = F.relu(self.h_layer1(state))
         x = F.relu(self.h_layer2(x))
-        print(self.out(x))
-        return self.out(x)
+        x = self.out(x)
+        return x

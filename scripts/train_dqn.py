@@ -90,7 +90,6 @@ def select_action(state):
         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
     if sample > eps_threshold:
-        print('bbb')
         with torch.no_grad():
             return policy_net(state).max(1)[1].view(1, 1)
     else:
@@ -134,7 +133,6 @@ def optimize_model():
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
 
-
     state_action_values = policy_net(cur_state_batch).gather(1, action_batch)
 
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
@@ -157,7 +155,7 @@ for i_episode in range(n_episodes):
     # Initialize the environment and state
     env.start()
     #cur_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
-    cur_state = torch.from_numpy(env.getLidar()).to(device)
+    cur_state = torch.from_numpy(env.getLidar()).unsqueeze(0).to(device)
     for t in count():
         # Select and perform an action
         action = select_action(cur_state)
@@ -167,7 +165,7 @@ for i_episode in range(n_episodes):
         
         # Observe new state
         #next_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
-        next_state = torch.from_numpy(env.getLidar()).to(device)
+        next_state = torch.from_numpy(env.getLidar()).unsqueeze(0).to(device)
         if done:
             next_state = None
 
