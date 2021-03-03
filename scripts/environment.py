@@ -36,6 +36,7 @@ class Environment:
         self.visible = [[False for i in range(self.width)] for j in range(self.height)]
         self.visited = [[False for i in range(self.width)] for j in range(self.height)]
         self.time = 0
+        self.rewards = 0
         while(True):
             x = random.randint(0, self.height-1)
             y = random.randint(0, self.width-1)
@@ -114,6 +115,7 @@ class Environment:
             reward = reward + COLLISION
         elif success == SUCCESS:
             reward = reward + FINISH
+        self.rewards = self.rewards + reward
         return reward, done
 
 
@@ -142,3 +144,6 @@ class Environment:
 
     def getPose(self):
         return np.array([self.position[0]/self.height, self.position[1]/self.width, self.heading/4.0], dtype=np.float32)
+
+    def getReward(self):
+        return self.rewards

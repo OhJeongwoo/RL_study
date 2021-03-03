@@ -8,6 +8,7 @@ from itertools import count
 from PIL import Image
 import yaml
 import os
+import cv2
 
 import torch
 import torch.nn as nn
@@ -175,11 +176,16 @@ for i_episode in range(n_episodes):
         # Perform one step of the optimization (on the target network)
         optimize_model()
         if done:
-            episode_durations.append(t + 1)
+            #episode_durations.append(t + 1)
+            episode_durations.append(env.rewards)
             plot_durations()
             break
         cur_map = next_map
         cur_pose = next_pose
+        # img = np.array(env.getImage(), dtype = np.uint8)
+        # cv2.imshow('GAME',img) 
+        # cv2.waitKey(1)
+        
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
