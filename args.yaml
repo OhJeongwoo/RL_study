@@ -7,7 +7,7 @@ map_name: map.png
 
 # RL Configuration
 actions: 3
-episodes: 300
+episodes: 3000
 hidden_layer_size: 64
 
 batch_size: 128

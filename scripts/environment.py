@@ -92,6 +92,7 @@ class Environment:
 
         return INPROGRESS, False
 
+    
     def doAction(self, action):
         # do action
         # 0 : go, 1 : turn ccw, 2 : turn cw
@@ -108,6 +109,7 @@ class Environment:
             self.heading = (self.heading + 3) % 4
             reward = reward + ROTATION
         success, done = self.isEnd()
+        
         if success == FAIL:
             reward = reward + COLLISION
         elif success == SUCCESS:
@@ -124,14 +126,19 @@ class Environment:
         for i in range(self.height):
             for j in range(self.width):
                 if not self.visible[i][j]:
-                    rt[i][j] = UNKNOWN
+                    rt[i][j] = UNKNOWN_VAL
                     continue
                 if self.visited[i][j]:
-                    rt[i][j] = VISITED
+                    rt[i][j] = VISITED_VAL
                     continue
-                rt[i][j] = self.map[i][j]
+                if self.map[i][j] == OBSTACLE:
+                    rt[i][j] = OBSTACLE_VAL
+                else:
+                    rt[i][j] = FREE_VAL
 
-        return np.array(rt, dtype=np.float32) / 255.0
+        rt[self.position[0]][self.position[1]] = POSITION_VAL + HEADING_VAL * self.heading
+
+        return np.array(rt, dtype=np.float32)
 
     def getPose(self):
         return np.array([self.position[0]/self.height, self.position[1]/self.width, self.heading/4.0], dtype=np.float32)

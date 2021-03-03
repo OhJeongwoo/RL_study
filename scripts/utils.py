@@ -21,6 +21,14 @@ INPROGRESS = -1
 FAIL = 0
 SUCCESS = 1
 
+# VALUE
+UNKNOWN_VAL = 0.0
+VISITED_VAL = 0.1
+OBSTACLE_VAL = 0.2
+FREE_VAL = 0.3
+POSITION_VAL = 0.7
+HEADING_VAL = 0.1
+
 Transition = namedtuple('Transition',
                         ('cur_map', 'cur_pose', 'action', 'next_map', 'next_pose', 'reward'))
 
