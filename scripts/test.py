@@ -25,12 +25,16 @@ game.start()
 #     for j in range(20):
 #         print(a[i][j])
 while(True):
-    img = Image.fromarray(np.uint8(np.array(game.getImage())), 'L')
+    img = Image.fromarray(np.uint8(game.getImage()), 'L')
     img = img.resize((300,300))
     img.show()
     
     action = input()
     if action == -1:
         break
-    game.doAction(action)
+    reward, success, done = game.doAction(action)
+    print(reward)
+    print(success)
+    print(done)
+    
 #grayImage = cv2.cvtColor(np.array(game.getImage()), cv2.COLOR_GRAY2BGR)

@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import random
 from collections import namedtuple
 
 # MAP CONFIGURATION
@@ -20,9 +21,9 @@ INPROGRESS = -1
 FAIL = 0
 SUCCESS = 1
 
-
 Transition = namedtuple('Transition',
-                        ('state', 'action', 'next_state', 'reward'))
+                        ('cur_map', 'cur_pose', 'action', 'next_map', 'next_pose', 'reward'))
+
 
 
 def getType(pixel):

@@ -107,12 +107,12 @@ class Environment:
         elif action == 2:
             self.heading = (self.heading + 3) % 4
             reward = reward + ROTATION
-        success, end = self.isEnd()
+        success, done = self.isEnd()
         if success == FAIL:
             reward = reward + COLLISION
         elif success == SUCCESS:
             reward = reward + FINISH
-        return reward, success, end
+        return reward, done
 
 
     def getSize(self):
@@ -131,4 +131,7 @@ class Environment:
                     continue
                 rt[i][j] = self.map[i][j]
 
-        return np.array(rt) / 255.0
+        return np.array(rt, dtype=np.float32) / 255.0
+
+    def getPose(self):
+        return np.array([self.position[0]/self.height, self.position[1]/self.width, self.heading/4.0], dtype=np.float32)
