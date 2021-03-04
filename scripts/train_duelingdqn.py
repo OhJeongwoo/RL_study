@@ -21,6 +21,7 @@ import environment as env
 import utils
 
 rewards = []
+coverages = []
 
 Transition = namedtuple('Transition',
                         ('cur_state', 'action', 'next_state', 'reward'))
@@ -112,6 +113,16 @@ def plot_rewards(episodes, rewards):
 
     plt.savefig("./reward_graph.png")
 
+def plot_coverage(episodes, coverage):
+    plt.figure(3)
+    plt.clf()
+    plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Coverage')
+
+    plt.plot(episodes, coverage)
+
+    plt.savefig("./coverage_graph.png")    
 
 
 def optimize_model():
@@ -173,10 +184,19 @@ for i_episode in range(n_episodes):
             #episode_durations.append(t + 1)
             cur_rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
+<<<<<<< HEAD
             print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,cur_rewards,spaces))
             rewards.append(cur_rewards)
+=======
+            # f.write("iteration {0}, duration : {1}, rewards : {2}\n".format(i_episode,t+1,env.rewards))
+            coverage = env.spaces/(env.spaces+env.free_spaces) * 100
+            print("iteration {0}, duration : {1}, rewards : {2}, coverage: {3}".format(i_episode,t+1,env.rewards, coverage))
+            rewards.append(env.rewards)
+            coverages.append(coverage)
+>>>>>>> 269c54b38900321a10dbfbb5ac9876fcaf3ee9fe
             episodes = list(range(i_episode+1))
             plot_rewards(episodes, rewards)
+            plot_coverage(episodes, coverages)
             #plot_durations()
             break
         else:
@@ -196,7 +216,10 @@ for i_episode in range(n_episodes):
     
     
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 269c54b38900321a10dbfbb5ac9876fcaf3ee9fe
 print('Complete')
 
 plt.ioff()

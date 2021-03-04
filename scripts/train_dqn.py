@@ -20,6 +20,9 @@ import dqn
 import environment as env
 import utils
 
+
+reward_list = []
+
 Transition = namedtuple('Transition',
                         ('cur_state', 'action', 'next_state', 'reward'))
 
@@ -102,24 +105,16 @@ def select_action(state):
 episode_durations = []
 
 
-def plot_durations():
-    plt.figure(2)
+def plot_rewards(episodes, rewards):
+    plt.figure(3)
     plt.clf()
-    durations_t = torch.tensor(episode_durations, dtype=torch.float)
     plt.title('Training...')
     plt.xlabel('Episode')
-    plt.ylabel('Duration')
-    plt.plot(durations_t.numpy())
-    # Take 100 episode averages and plot them too
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
+    plt.ylabel('Reward')
 
-    plt.pause(0.001)  # pause a bit so that plots are updated
-    if is_ipython:
-        display.clear_output(wait=True)
-        display.display(plt.gcf())
+    plt.plot(episodes, rewards)
+
+    plt.savefig("./reward_graph.png")
 
 
 
@@ -185,6 +180,9 @@ for i_episode in range(n_episodes):
             data = "{0} {1} {2} {3}\n".format(i_episode,durations,rewards,spaces)
             logs.write(data)
             print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,rewards,spaces))
+            reward_list.append(rewards)
+            episodes = list(range(i_episode+1))
+            plot_rewards(episodes, rewards)
             #plot_durations()
             break
         else:
