@@ -150,6 +150,7 @@ def optimize_model():
 
 
 for i_episode in range(n_episodes):
+    logs = open(log_path, 'a')
     # Initialize the environment and state
     env.start()
     #cur_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
@@ -182,7 +183,7 @@ for i_episode in range(n_episodes):
             print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,rewards,spaces))
             reward_list.append(rewards)
             episodes = list(range(i_episode+1))
-            plot_rewards(episodes, rewards)
+            plot_rewards(episodes, reward_list)
             #plot_durations()
             break
         else:
@@ -198,9 +199,10 @@ for i_episode in range(n_episodes):
         target_net.load_state_dict(policy_net.state_dict())
         save_path = project_path + "/weights/model" + str(i_episode) + ".pt"
         torch.save(target_net.state_dict(), save_path)
+    
+    logs.close()
 
 print('Complete')
-logs.close()
 env.render()
 env.close()
 plt.ioff()
