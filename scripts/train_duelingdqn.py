@@ -30,12 +30,14 @@ Transition = namedtuple('Transition',
 project_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 yaml_path = project_path + "/args.yaml"
 
+
 with open(yaml_path) as f:
     yaml_file = yaml.load(f)
 ######################
 
 ### Set up hyper parameters ###
 map_path = project_path + "/" + yaml_file['map_name']
+log_path = project_path + "/logs/dueling/" + yaml_file['log_file_name']
 visible_threshold = yaml_file['visible_threshold']
 n_angle = yaml_file['n_angle']
 step_size = yaml_file['step_size']
@@ -71,6 +73,7 @@ plt.ion()
 # if gpu is to be used
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+logs = open(log_path, 'w')
 
 transform = T.Compose([T.ToPILImage(),
                        T.ToTensor()])
@@ -184,7 +187,8 @@ for i_episode in range(n_episodes):
             #episode_durations.append(t + 1)
             cur_rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
-            # f.write("iteration {0}, duration : {1}, rewards : {2}\n".format(i_episode,t+1,env.rewards))
+            data = "{0} {1} {2} {3}\n".format(i_episode,durations,cur_rewards,spaces)
+            logs.write(data)
             coverage = env.spaces/env.free_spaces * 100
             print("iteration {0}, duration : {1}, rewards : {2}, coverage: {3}, free_spaces: {4}".format(i_episode,t+1,env.rewards, coverage, env.spaces))
             rewards.append(env.rewards)
@@ -212,6 +216,6 @@ for i_episode in range(n_episodes):
     
 
 print('Complete')
-
+logs.close()
 plt.ioff()
 plt.show()
