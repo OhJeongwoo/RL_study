@@ -49,6 +49,7 @@ EPS_START = yaml_file['eps_start']
 EPS_END = yaml_file['eps_end']
 EPS_DECAY = yaml_file['eps_decay']
 TARGET_UPDATE = yaml_file['target_update']
+SOFT_UPDATE_RATE = yaml_file['soft_update_rate']
 
 n_actions = yaml_file['actions']
 n_episodes = yaml_file['episodes']

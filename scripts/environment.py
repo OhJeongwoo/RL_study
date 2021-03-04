@@ -110,7 +110,7 @@ class Environment:
             return SUCCESS, True
         
         if self.time > self.time_threshold:
-            return FAIL, True
+            return TIME_FAIL, True
 
         return INPROGRESS, False
 
@@ -134,8 +134,13 @@ class Environment:
         
         if success == FAIL:
             reward = reward + COLLISION
+            print("COLLISION")
         elif success == SUCCESS:
             reward = reward + FINISH
+            print("SUCCESS")
+        elif success == TIME_FAIL:
+            reward = reward + TIMEOVER
+            print("TIMEOVER")
         self.rewards = self.rewards + reward
         return reward, done
 
