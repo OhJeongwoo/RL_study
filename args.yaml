@@ -4,7 +4,7 @@ n_angle: 60
 step_size: 0.1
 time_threshold: 1000
 map_name: map.png
-log_file_name: result.log
+log_file_name: result_onlyexp.log
 
 # RL Configuration
 actions: 3
@@ -14,7 +14,7 @@ hidden_layer2_size: 32
 hidden_layer_size: 64
 
 batch_size: 128
-gamma: 0.999
+gamma: 0.95
 eps_start: 0.99
 eps_end: 0.01
 eps_decay: 500
