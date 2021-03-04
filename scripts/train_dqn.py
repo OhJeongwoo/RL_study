@@ -198,6 +198,8 @@ for i_episode in range(n_episodes):
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
+        save_path = project_path + "/weights/model" + str(i_episode) + ".pt"
+        torch.save(target_net.state_dict(), save_path)
 
 print('Complete')
 logs.close()

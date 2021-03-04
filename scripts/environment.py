@@ -70,7 +70,7 @@ class Environment:
             else:
                 self.count = 1
                 self.type = True
-            reward = reward + ARRIVE * self.count
+            reward = reward + ARRIVE * self.free_spaces / (self.free_spaces - self.spaces)
         self.visited[self.position[0]][self.position[1]] = self.visited[self.position[0]][self.position[1]] + 1
         
         for i in range(self.n_angle):
