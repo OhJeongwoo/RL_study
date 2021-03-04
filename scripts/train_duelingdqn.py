@@ -16,12 +16,14 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-import dqn
+import duelingdqn
 import environment as env
 import utils
+from time import time
 
-rewards = []
+reward_list = []
 coverages = []
+coverages_tenth = []
 
 Transition = namedtuple('Transition',
                         ('cur_state', 'action', 'next_state', 'reward'))
@@ -30,14 +32,13 @@ Transition = namedtuple('Transition',
 project_path = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 yaml_path = project_path + "/args.yaml"
 
-
 with open(yaml_path) as f:
     yaml_file = yaml.load(f)
 ######################
 
 ### Set up hyper parameters ###
 map_path = project_path + "/" + yaml_file['map_name']
-log_path = project_path + "/logs/dueling/" + yaml_file['log_file_name']
+log_path = project_path + "/logs/duelingdqn/" + yaml_file['log_file_name']
 visible_threshold = yaml_file['visible_threshold']
 n_angle = yaml_file['n_angle']
 step_size = yaml_file['step_size']
@@ -76,11 +77,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 logs = open(log_path, 'w')
 
+
 transform = T.Compose([T.ToPILImage(),
                        T.ToTensor()])
 
-policy_net = dqn.DQN(n_angle, n_actions, hidden_layer1_size, hidden_layer2_size).to(device)
-target_net = dqn.DQN(n_angle, n_actions, hidden_layer1_size, hidden_layer2_size).to(device)
+policy_net = duelingdqn.DuelingDQN(n_angle, n_actions, hidden_layer1_size, hidden_layer2_size).to(device)
+target_net = duelingdqn.DuelingDQN(n_angle, n_actions, hidden_layer1_size, hidden_layer2_size).to(device)
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
@@ -98,7 +100,7 @@ def select_action(state):
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
-            return policy_net(state).max(1)[1].view(1, 1)
+            return policy_net(state).unsqueeze(0).max(1)[1].view(1, 1)
     else:
         return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
 
@@ -115,7 +117,7 @@ def plot_rewards(episodes, rewards):
 
     plt.plot(episodes, rewards)
 
-    plt.savefig("./reward_graph.png")
+    plt.savefig(project_path+"/logs/duelingdqn/rewards.png")
 
 def plot_coverage(episodes, coverage):
     plt.figure(3)
@@ -126,7 +128,7 @@ def plot_coverage(episodes, coverage):
 
     plt.plot(episodes, coverage)
 
-    plt.savefig("./coverage_graph.png")    
+    plt.savefig(project_path+"/logs/duelingdqn/coverage.png")    
 
 
 def optimize_model():
@@ -137,16 +139,15 @@ def optimize_model():
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                           batch.next_state)), device=device, dtype=torch.bool)
     non_final_next_state = torch.cat([s for s in batch.next_state if s is not None])
-
+    
     cur_state_batch = torch.cat(batch.cur_state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
 
-
-    state_action_values = policy_net(cur_state_batch).gather(1, action_batch)
+    state_action_values = policy_net(cur_state_batch)
 
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    next_state_values[non_final_mask] = target_net(non_final_next_state).max(1)[0].detach()
+    next_state_values[non_final_mask] = target_net(non_final_next_state).unsqueeze(0).max(1)[0].detach()
 
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
@@ -159,8 +160,10 @@ def optimize_model():
     optimizer.step()
 
 
+begin = time()
 
 for i_episode in range(n_episodes):
+    logs = open(log_path, 'a')
     # Initialize the environment and state
     env.start()
     #cur_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
@@ -186,17 +189,17 @@ for i_episode in range(n_episodes):
         optimize_model()
         if done:
             #episode_durations.append(t + 1)
-            cur_rewards, spaces, durations = env.getSummary()
+            end = time()
+            rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
-            data = "{0} {1} {2} {3}\n".format(i_episode,durations,cur_rewards,spaces)
-            logs.write(data)
             coverage = env.spaces/env.free_spaces * 100
-            print("iteration {0}, duration : {1}, rewards : {2}, coverage: {3}, free_spaces: {4}".format(i_episode,t+1,env.rewards, coverage, env.spaces))
-            rewards.append(env.rewards)
+            data = "{0} {1} {2} {3}\n".format(i_episode,durations,rewards,spaces)
+            logs.write(data)
+            print("[{4}] iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3} ... expected remain time {5}".format(i_episode,durations,rewards,spaces,end-begin, (end-begin)*(n_episodes-i_episode-1)/(i_episode+1)))
+            reward_list.append(rewards)
             coverages.append(coverage)
             episodes = list(range(i_episode+1))
-            plot_rewards(episodes, rewards)
-            plot_coverage(episodes, coverages)
+            plot_rewards(episodes, reward_list)
             #plot_durations()
             break
         else:
@@ -206,17 +209,35 @@ for i_episode in range(n_episodes):
         
         cur_state = next_state
 
-
-        
+    targetnet = target_net.state_dict()
+    targetnet['h_layer1.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer1.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer1.weight']
+    targetnet['h_layer1.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer1.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer1.bias']
+    targetnet['h_layer2.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer2.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer2.weight']
+    targetnet['h_layer2.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer2.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer2.bias']
+    targetnet['fc1.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['fc1.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['fc1.weight']
+    targetnet['fc1.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['fc1.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['fc1.bias']
+    targetnet['fc2.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['fc2.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['fc2.weight']
+    targetnet['fc2.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['fc2.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['fc2.bias']
+    targetnet['actionlayer.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['actionlayer.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['actionlayer.weight']
+    targetnet['actionlayer.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['actionlayer.bias']+ (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['actionlayer.bias']
+    targetnet['valuelayer.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['valuelayer.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['valuelayer.weight']
+    targetnet['valuelayer.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['valuelayer.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['valuelayer.bias']
+    target_net.load_state_dict(targetnet)
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
-        target_net.load_state_dict(policy_net.state_dict())
-        torch.save(policy_net.state_dict(), './duelingdqn/policy/test0304.pkl')
-        torch.save(target_net.state_dict(), './duelingdqn/target/test0304.pkl')
+        save_path = project_path + "/weights/duelingdqn/model" + str(i_episode) + ".pkl"
+        torch.save(target_net.state_dict(), save_path)
+        episodes_tenth = list(range((i_episode+1)//10))
+        if (i_episode !=0):
+            result = sum(coverages[-10:])/10
+            print(result)
+            coverages_tenth.append(result)
+        plot_coverage(episodes_tenth, coverages_tenth)
     
-    
+    logs.close()
 
 print('Complete')
-logs.close()
+env.render()
+env.close()
 plt.ioff()
 plt.show()
