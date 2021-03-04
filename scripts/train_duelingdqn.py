@@ -20,6 +20,8 @@ import dqn
 import environment as env
 import utils
 
+rewards = []
+
 Transition = namedtuple('Transition',
                         ('cur_state', 'action', 'next_state', 'reward'))
 
@@ -91,7 +93,6 @@ def select_action(state):
         math.exp(-1. * steps_done / EPS_DECAY)
     steps_done += 1
     if sample > eps_threshold:
-        print('bbb')
         with torch.no_grad():
             return policy_net(state).max(1)[1].view(1, 1)
     else:
@@ -101,24 +102,16 @@ def select_action(state):
 episode_durations = []
 
 
-def plot_durations():
+def plot_rewards(episodes, rewards):
     plt.figure(2)
     plt.clf()
-    durations_t = torch.tensor(episode_durations, dtype=torch.float)
     plt.title('Training...')
     plt.xlabel('Episode')
-    plt.ylabel('Duration')
-    plt.plot(durations_t.numpy())
-    # Take 100 episode averages and plot them too
-    if len(durations_t) >= 100:
-        means = durations_t.unfold(0, 100, 1).mean(1).view(-1)
-        means = torch.cat((torch.zeros(99), means))
-        plt.plot(means.numpy())
+    plt.ylabel('Reward')
 
-    plt.pause(0.001)  # pause a bit so that plots are updated
-    if is_ipython:
-        display.clear_output(wait=True)
-        display.display(plt.gcf())
+    plt.plot(episodes, rewards)
+
+    plt.savefig("./reward_graph.png")
 
 
 
@@ -130,7 +123,7 @@ def optimize_model():
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                           batch.next_state)), device=device, dtype=torch.bool)
     non_final_next_state = torch.cat([s for s in batch.next_state if s is not None])
-    
+
     cur_state_batch = torch.cat(batch.cur_state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
@@ -158,7 +151,7 @@ for i_episode in range(n_episodes):
     f = open(filename, 'a')
     env.start()
     #cur_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
-    cur_state = torch.from_numpy(env.getLidar()).to(device)
+    cur_state = torch.from_numpy(env.getLidar()).unsqueeze(0).to(device)
     for t in count():
         # Select and perform an action
         action = select_action(cur_state)
@@ -168,7 +161,7 @@ for i_episode in range(n_episodes):
         
         # Observe new state
         #next_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
-        next_state = torch.from_numpy(env.getLidar()).to(device)
+        next_state = torch.from_numpy(env.getLidar()).unsqueeze(0).to(device)
         if done:
             next_state = None
 
@@ -181,8 +174,11 @@ for i_episode in range(n_episodes):
         if done:
             #episode_durations.append(t + 1)
             episode_durations.append(env.rewards)
-            f.write("iteration {0}, duration : {1}, rewards : {2}\n".format(i_episode,t+1,env.rewards))
-            # print("iteration {0}, duration : {1}, rewards : {2}".format(i_episode,t+1,env.rewards))
+            # f.write("iteration {0}, duration : {1}, rewards : {2}\n".format(i_episode,t+1,env.rewards))
+            print("iteration {0}, duration : {1}, rewards : {2}".format(i_episode,t+1,env.rewards))
+            rewards.append(env.rewards)
+            episodes = list(range(i_episode+1))
+            plot_rewards(episodes, rewards)
             #plot_durations()
             break
         else:
@@ -191,12 +187,17 @@ for i_episode in range(n_episodes):
             cv2.waitKey(1)
         
         cur_state = next_state
-        
+
+
         
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
+        torch.save(policy_net.state_dict(), './duelingdqn/policy/test0304.pkl')
+        torch.save(target_net.state_dict(), './duelingdqn/target/test0304.pkl')
     
+    
+
     f.close()
 
 print('Complete')
