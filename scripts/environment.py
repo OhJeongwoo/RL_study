@@ -46,6 +46,8 @@ class Environment:
         while(True):
             x = random.randint(0, self.height-1)
             y = random.randint(0, self.width-1)
+            x = 1
+            y = 1
             if self.map[x][y] == OBSTACLE:
                 continue
             self.position = [x,y]
@@ -70,7 +72,7 @@ class Environment:
             else:
                 self.count = 1
                 self.type = True
-            reward = reward + ARRIVE * self.free_spaces / (self.free_spaces - self.spaces)
+            reward = reward + ARRIVE * self.free_spaces / (self.free_spaces + 1 - self.spaces)
         self.visited[self.position[0]][self.position[1]] = self.visited[self.position[0]][self.position[1]] + 1
         
         for i in range(self.n_angle):

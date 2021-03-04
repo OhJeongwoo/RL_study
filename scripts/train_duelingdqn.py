@@ -53,7 +53,6 @@ n_episodes = yaml_file['episodes']
 hidden_layer1_size = yaml_file['hidden_layer1_size']
 hidden_layer2_size = yaml_file['hidden_layer2_size']
 
-filename = yaml_file['filename']
 
 ###############################
 
@@ -148,7 +147,6 @@ def optimize_model():
 
 for i_episode in range(n_episodes):
     # Initialize the environment and state
-    f = open(filename, 'a')
     env.start()
     #cur_state = transform(torch.from_numpy(env.getLidar())).unsqueeze(0).to(device)
     cur_state = torch.from_numpy(env.getLidar()).unsqueeze(0).to(device)
@@ -173,10 +171,10 @@ for i_episode in range(n_episodes):
         optimize_model()
         if done:
             #episode_durations.append(t + 1)
+            cur_rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
-            # f.write("iteration {0}, duration : {1}, rewards : {2}\n".format(i_episode,t+1,env.rewards))
-            print("iteration {0}, duration : {1}, rewards : {2}".format(i_episode,t+1,env.rewards))
-            rewards.append(env.rewards)
+            print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,cur_rewards,spaces))
+            rewards.append(cur_rewards)
             episodes = list(range(i_episode+1))
             plot_rewards(episodes, rewards)
             #plot_durations()
@@ -198,10 +196,8 @@ for i_episode in range(n_episodes):
     
     
 
-    f.close()
 
 print('Complete')
-env.render()
-env.close()
+
 plt.ioff()
 plt.show()
