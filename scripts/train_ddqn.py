@@ -22,6 +22,8 @@ import utils
 
 
 reward_list = []
+coverages = []
+coverages_tenth = []
 
 Transition = namedtuple('Transition',
                         ('cur_state', 'action', 'next_state', 'reward'))
@@ -48,6 +50,7 @@ EPS_START = yaml_file['eps_start']
 EPS_END = yaml_file['eps_end']
 EPS_DECAY = yaml_file['eps_decay']
 TARGET_UPDATE = yaml_file['target_update']
+SOFT_UPDATE_RATE = yaml_file['soft_update_rate']
 
 n_actions = yaml_file['actions']
 n_episodes = yaml_file['episodes']
@@ -106,7 +109,7 @@ episode_durations = []
 
 
 def plot_rewards(episodes, rewards):
-    plt.figure(3)
+    plt.figure(2)
     plt.clf()
     plt.title('Training...')
     plt.xlabel('Episode')
@@ -114,7 +117,18 @@ def plot_rewards(episodes, rewards):
 
     plt.plot(episodes, rewards)
 
-    plt.savefig("./reward_graph.png")
+    plt.savefig(project_path+"/logs/ddqn/rewards.png")
+
+def plot_coverage(episodes, coverage):
+    plt.figure(3)
+    plt.clf()
+    plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Coverage')
+
+    plt.plot(episodes, coverage)
+
+    plt.savefig(project_path+"/logs/ddqn/coverage.png")    
 
 
 
@@ -175,13 +189,17 @@ for i_episode in range(n_episodes):
         optimize_model()
         if done:
             #episode_durations.append(t + 1)
+            end = time()
             rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
+            coverage = env.spaces/env.free_spaces * 100
             data = "{0} {1} {2} {3}\n".format(i_episode,durations,rewards,spaces)
             logs.write(data)
-            print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,rewards,spaces))
+            print("[{4}] iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3} ... expected remain time {5}".format(i_episode,durations,rewards,spaces,end-begin, (end-begin)*(n_episodes-i_episode-1)/(i_episode+1)))
             reward_list.append(rewards)
+            coverages.append(coverage)
             episodes = list(range(i_episode+1))
+            plot_rewards(episodes, reward_list)
             #plot_rewards(episodes, rewards)
             #plot_durations()
             break
@@ -196,7 +214,7 @@ for i_episode in range(n_episodes):
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
-        save_path = project_path + "/weights/model" + str(i_episode) + ".pt"
+        save_path = project_path + "/weights/ddqn/model" + str(i_episode) + ".pt"
         torch.save(target_net.state_dict(), save_path)
 
 print('Complete')

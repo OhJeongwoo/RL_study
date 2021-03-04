@@ -51,6 +51,7 @@ EPS_START = yaml_file['eps_start']
 EPS_END = yaml_file['eps_end']
 EPS_DECAY = yaml_file['eps_decay']
 TARGET_UPDATE = yaml_file['target_update']
+SOFT_UPDATE_RATE = yaml_file['soft_update_rate']
 
 n_actions = yaml_file['actions']
 n_episodes = yaml_file['episodes']
@@ -117,7 +118,7 @@ def plot_rewards(episodes, rewards):
 
     plt.plot(episodes, rewards)
 
-    plt.savefig("./reward_graph_dqn_onlyexp.png")
+    plt.savefig(project_path+"/logs/dqn/rewards.png")
 
 def plot_coverage(episodes, coverage):
     plt.figure(3)
@@ -128,7 +129,7 @@ def plot_coverage(episodes, coverage):
 
     plt.plot(episodes, coverage)
 
-    plt.savefig("./coverage_graph_dqn_onlyexp.png")    
+    plt.savefig(project_path+"/logs/dqn/coverage.png")    
 
 
 def optimize_model():
@@ -210,19 +211,15 @@ for i_episode in range(n_episodes):
         cur_state = next_state
 
     targetnet = target_net.state_dict()
-    targetnet['h_layer1.weight'] = 0.1* policy_net.state_dict()['h_layer1.weight'] + 0.9 * target_net.state_dict()['h_layer1.weight']
-    targetnet['h_layer1.bias'] = 0.1* policy_net.state_dict()['h_layer1.bias'] + 0.9 * target_net.state_dict()['h_layer1.bias']
-    targetnet['h_layer2.weight'] = 0.1* policy_net.state_dict()['h_layer2.weight'] + 0.9 * target_net.state_dict()['h_layer2.weight']
-    targetnet['h_layer2.bias'] = 0.1* policy_net.state_dict()['h_layer2.bias'] + 0.9 * target_net.state_dict()['h_layer2.bias']
-    targetnet['out.weight'] = 0.1* policy_net.state_dict()['out.weight'] + 0.9 * target_net.state_dict()['out.weight']
-    targetnet['out.bias'] = 0.1* policy_net.state_dict()['out.bias'] + 0.9 * target_net.state_dict()['out.bias']
+    targetnet['h_layer1.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer1.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer1.weight']
+    targetnet['h_layer1.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer1.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer1.bias']
+    targetnet['h_layer2.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer2.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer2.weight']
+    targetnet['h_layer2.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer2.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer2.bias']
+    targetnet['out.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['out.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['out.weight']
+    targetnet['out.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['out.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['out.bias']
     target_net.load_state_dict(targetnet)
-    # target_net.state_dict['h_layer1.weight'] = 0.01* policy_net.state_dict[0]['h_layer1.weight'] + 0.99 * target_net.state_dict[0]['h_layer1.weight']
-    # target_net.state_dict[1]['h_layer2.weight'] = 0.01* policy_net.state_dict[1]['h_layer2.weight'] + 0.99 * target_net.state_dict[1]['h_layer2.weight']
-    # target_net.load_state_dict(0.01* policy_net.state_dict() + 0.99 * target_net.state_dict())    
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
-        # target_net.load_state_dict(policy_net.state_dict())
         save_path = project_path + "/weights/model_withonlyexp" + str(i_episode) + ".pkl"
         torch.save(target_net.state_dict(), save_path)
         episodes_tenth = list(range((i_episode+1)//10))
