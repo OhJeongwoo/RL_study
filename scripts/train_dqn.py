@@ -38,7 +38,7 @@ with open(yaml_path) as f:
 
 ### Set up hyper parameters ###
 map_path = project_path + "/" + yaml_file['map_name']
-log_path = project_path + "/" + yaml_file['log_file_name']
+log_path = project_path + "/logs/dqn/" + yaml_file['log_file_name']
 visible_threshold = yaml_file['visible_threshold']
 n_angle = yaml_file['n_angle']
 step_size = yaml_file['step_size']
