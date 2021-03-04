@@ -22,6 +22,8 @@ import utils
 
 
 reward_list = []
+coverages = []
+coverages_tenth = []
 
 Transition = namedtuple('Transition',
                         ('cur_state', 'action', 'next_state', 'reward'))
@@ -106,7 +108,7 @@ episode_durations = []
 
 
 def plot_rewards(episodes, rewards):
-    plt.figure(3)
+    plt.figure(2)
     plt.clf()
     plt.title('Training...')
     plt.xlabel('Episode')
@@ -114,8 +116,18 @@ def plot_rewards(episodes, rewards):
 
     plt.plot(episodes, rewards)
 
-    plt.savefig("./reward_graph.png")
+    plt.savefig("./reward_graph_dqn_onlyexp.png")
 
+def plot_coverage(episodes, coverage):
+    plt.figure(3)
+    plt.clf()
+    plt.title('Training...')
+    plt.xlabel('Episode')
+    plt.ylabel('Coverage')
+
+    plt.plot(episodes, coverage)
+
+    plt.savefig("./coverage_graph_dqn_onlyexp.png")    
 
 
 def optimize_model():
@@ -178,10 +190,12 @@ for i_episode in range(n_episodes):
             #episode_durations.append(t + 1)
             rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
+            coverage = env.spaces/env.free_spaces * 100
             data = "{0} {1} {2} {3}\n".format(i_episode,durations,rewards,spaces)
             logs.write(data)
             print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,rewards,spaces))
             reward_list.append(rewards)
+            coverages.append(coverage)
             episodes = list(range(i_episode+1))
             plot_rewards(episodes, reward_list)
             #plot_durations()
@@ -192,13 +206,29 @@ for i_episode in range(n_episodes):
             cv2.waitKey(1)
         
         cur_state = next_state
-        
-        
+
+    targetnet = target_net.state_dict()
+    targetnet['h_layer1.weight'] = 0.1* policy_net.state_dict()['h_layer1.weight'] + 0.9 * target_net.state_dict()['h_layer1.weight']
+    targetnet['h_layer1.bias'] = 0.1* policy_net.state_dict()['h_layer1.bias'] + 0.9 * target_net.state_dict()['h_layer1.bias']
+    targetnet['h_layer2.weight'] = 0.1* policy_net.state_dict()['h_layer2.weight'] + 0.9 * target_net.state_dict()['h_layer2.weight']
+    targetnet['h_layer2.bias'] = 0.1* policy_net.state_dict()['h_layer2.bias'] + 0.9 * target_net.state_dict()['h_layer2.bias']
+    targetnet['out.weight'] = 0.1* policy_net.state_dict()['out.weight'] + 0.9 * target_net.state_dict()['out.weight']
+    targetnet['out.bias'] = 0.1* policy_net.state_dict()['out.bias'] + 0.9 * target_net.state_dict()['out.bias']
+    target_net.load_state_dict(targetnet)
+    # target_net.state_dict['h_layer1.weight'] = 0.01* policy_net.state_dict[0]['h_layer1.weight'] + 0.99 * target_net.state_dict[0]['h_layer1.weight']
+    # target_net.state_dict[1]['h_layer2.weight'] = 0.01* policy_net.state_dict[1]['h_layer2.weight'] + 0.99 * target_net.state_dict[1]['h_layer2.weight']
+    # target_net.load_state_dict(0.01* policy_net.state_dict() + 0.99 * target_net.state_dict())    
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
-        target_net.load_state_dict(policy_net.state_dict())
-        save_path = project_path + "/weights/model" + str(i_episode) + ".pt"
+        # target_net.load_state_dict(policy_net.state_dict())
+        save_path = project_path + "/weights/model_withonlyexp" + str(i_episode) + ".pkl"
         torch.save(target_net.state_dict(), save_path)
+        episodes_tenth = list(range((i_episode+1)//10))
+        if (i_episode !=0):
+            result = sum(coverages[-10:])/10
+            print(result)
+            coverages_tenth.append(result)
+        plot_coverage(episodes_tenth, coverages_tenth)
     
     logs.close()
 
