@@ -32,6 +32,7 @@ class Environment:
                     self.free_spaces = self.free_spaces + 1
                 else:
                     print("INVALID PIXEL VALUE")
+        print(self.free_spaces)
         
 
     def start(self):
@@ -63,7 +64,7 @@ class Environment:
                 self.type = False
             else:
                 self.count = self.count + 1
-            reward = reward + REVISITED * self.count
+            reward = reward + REVISITED
 
         else:
             self.spaces = self.spaces + 1

@@ -185,8 +185,8 @@ for i_episode in range(n_episodes):
             cur_rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
             # f.write("iteration {0}, duration : {1}, rewards : {2}\n".format(i_episode,t+1,env.rewards))
-            coverage = env.spaces/(env.spaces+env.free_spaces) * 100
-            print("iteration {0}, duration : {1}, rewards : {2}, coverage: {3}".format(i_episode,t+1,env.rewards, coverage))
+            coverage = env.spaces/env.free_spaces * 100
+            print("iteration {0}, duration : {1}, rewards : {2}, coverage: {3}, free_spaces: {4}".format(i_episode,t+1,env.rewards, coverage, env.spaces))
             rewards.append(env.rewards)
             coverages.append(coverage)
             episodes = list(range(i_episode+1))
