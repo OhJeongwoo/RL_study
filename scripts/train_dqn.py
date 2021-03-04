@@ -9,6 +9,7 @@ from PIL import Image
 import yaml
 import os
 import cv2
+from time import time
 
 import torch
 import torch.nn as nn
@@ -147,7 +148,7 @@ def optimize_model():
     optimizer.step()
 
 
-
+begin = time()
 
 for i_episode in range(n_episodes):
     logs = open(log_path, 'a')
@@ -176,11 +177,12 @@ for i_episode in range(n_episodes):
         optimize_model()
         if done:
             #episode_durations.append(t + 1)
+            end = time()
             rewards, spaces, durations = env.getSummary()
             episode_durations.append(env.rewards)
             data = "{0} {1} {2} {3}\n".format(i_episode,durations,rewards,spaces)
             logs.write(data)
-            print("iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3}".format(i_episode,durations,rewards,spaces))
+            print("[{4}] iteration {0}, duration : {1}, rewards : {2}, visited free spaces : {3} ... expected remain time {5}".format(i_episode,durations,rewards,spaces,end-begin, (end-begin)*(n_episodes-i_episode-1)/(i_episode+1)))
             reward_list.append(rewards)
             episodes = list(range(i_episode+1))
             plot_rewards(episodes, reward_list)
@@ -193,7 +195,7 @@ for i_episode in range(n_episodes):
         
         cur_state = next_state
         
-        
+     
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
