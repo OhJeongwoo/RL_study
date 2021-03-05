@@ -4,7 +4,6 @@ import torch.optim as optim
 import torch.nn.functional as F
 import torchvision.transforms as T
 
-from torchsummary import summary
 
 class DuelingDQN(nn.Module):
 
@@ -25,7 +24,7 @@ class DuelingDQN(nn.Module):
     def forward(self, state):
         x = F.relu(self.h_layer1(state))
         x = F.relu(self.h_layer2(x))
-        x1, x2 = torch.split(x[0], self.hidden2 // 2)
+        x1, x2 = torch.split(x, self.hidden2 // 2, dim = 1)
         # x1 = x1.unsqueeze(0)
         # x2 = x2.unsqueeze(0)
         self.value = F.relu(self.valuelayer(F.relu(self.fc2(F.relu(self.fc1(x1))))))
