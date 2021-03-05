@@ -87,7 +87,7 @@ target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
 
 optimizer = optim.RMSprop(policy_net.parameters())
-memory = utils.ReplayMemory(10000)
+memory = utils.ReplayMemory(100000)
 
 
 steps_done = 0
