@@ -9,6 +9,7 @@ from PIL import Image
 import yaml
 import os
 import cv2
+from time import time
 
 import torch
 import torch.nn as nn
@@ -160,7 +161,8 @@ def optimize_model():
         param.grad.data.clamp_(-1, 1)
     optimizer.step()
 
-
+begin = time()
+best_result = 0.0
 
 
 for i_episode in range(n_episodes):
@@ -213,13 +215,31 @@ for i_episode in range(n_episodes):
         
     # Update the target network, copying all weights and biases in DQN
     if i_episode % TARGET_UPDATE == 0:
-        target_net.load_state_dict(policy_net.state_dict())
         save_path = project_path + "/weights/ddqn/model" + str(i_episode) + ".pt"
         torch.save(target_net.state_dict(), save_path)
+        episodes_tenth = list(range((i_episode+1)//10))
+        if (i_episode !=0):
+            result = sum(coverages[-10:])/10
+            print(result)
+            if result > best_result:
+                print("BEST MODEL! Now we save the model")
+                target_net.load_state_dict(policy_net.state_dict())
+                best_result = result
+            else:
+                print("NORMAL! Now we do soft update")
+                targetnet = target_net.state_dict()
+                targetnet['h_layer1.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer1.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer1.weight']
+                targetnet['h_layer1.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer1.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer1.bias']
+                targetnet['h_layer2.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer2.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer2.weight']
+                targetnet['h_layer2.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['h_layer2.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['h_layer2.bias']
+                targetnet['out.weight'] = SOFT_UPDATE_RATE * policy_net.state_dict()['out.weight'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['out.weight']
+                targetnet['out.bias'] = SOFT_UPDATE_RATE * policy_net.state_dict()['out.bias'] + (1 - SOFT_UPDATE_RATE) * target_net.state_dict()['out.bias']
+                target_net.load_state_dict(targetnet)
+            coverages_tenth.append(result)
+        plot_coverage(episodes_tenth, coverages_tenth)
+    
 
 print('Complete')
 logs.close()
-env.render()
-env.close()
 plt.ioff()
 plt.show()

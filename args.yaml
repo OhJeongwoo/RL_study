@@ -19,4 +19,4 @@ eps_start: 0.99
 eps_end: 0.01
 eps_decay: 1000
 target_update: 10
-soft_update_rate: 0.05
+soft_update_rate: 0.1
